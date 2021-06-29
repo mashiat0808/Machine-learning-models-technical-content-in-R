@@ -1,0 +1,102 @@
+---
+title: "PCA"
+output: 
+    html_document:
+      toc: true
+      toc_float: true
+---
+
+# Understanding Principal Component Analysis
+
+## What is PCA?
+
+Principal Component Analysis, or PCA, is a dimensionality-reduction method that is often used to reduce the dimensionality of large data sets, by transforming a large set of variables into a smaller one that still contains most of the information in the large set.
+
+Principal component analysis is a technique for feature extraction — so it combines our input variables in a specific way, then we can drop the “least important” variables while still retaining the most valuable parts of all of the variables! As an added benefit, each of the “new” variables after PCA are all independent of one another. This is a benefit because the assumptions of a linear model require our independent variables to be independent of one another. If we decide to fit a linear regression model with these “new” variables (see “principal component regression” below), this assumption will necessarily be satisfied.
+
+Reducing the number of variables of a data set naturally comes at the expense of accuracy, but the trick in dimensionality reduction is to trade a little accuracy for simplicity. Because smaller data sets are easier to explore and visualize and make analyzing data much easier and faster for machine learning algorithms without extraneous variables to process.
+
+So to sum up, the idea of PCA is simple — reduce the number of variables of a data set, while preserving as much information as possible.
+
+
+## When should we use PCA?
+
+1. Do we want to reduce the number of variables, but aren’t able to identify variables to completely remove from consideration?
+2. Do we want to ensure our variables are independent of one another?
+3. Are we comfortable making our independent variables less interpretable?
+If we answered “yes” to all three questions, then PCA is a good method to use. If we answered “no” to question 3, we should not use PCA.
+
+## How does PCA work? 
+* The section after this discusses why PCA works, but providing a brief summary before jumping into the algorithm may be helpful for context:
+
++ We are going to calculate a matrix that summarizes how our variables all relate to one another.
++ We’ll then break this matrix down into two separate components: direction and magnitude. We can then understand the “directions” of our data and its “magnitude” (or how “important” each direction is). 
++We will transform our original data to align with these important directions (which are combinations of our original variables).
++ By identifying which “directions” are most “important,” we can compress or project our data into a smaller space by dropping the “directions” that are the “least important.” By projecting our data into a smaller space, we’re reducing the dimensionality of our feature space… but because we’ve transformed our data in these different “directions,” we’ve made sure to keep all original variables in our model!
+
+
+Here, we walk through an algorithm for conducting PCA. A deeper intuition of why the algorithm works is presented in the next section.
+
+Before starting, we should have tabular data organized with n rows and likely p+1 columns, where one column corresponds to our dependent variable (usually denoted Y) and p columns where each corresponds to an independent variable (the matrix of which is usually denoted X).
+
+1. If a **Y** variable exists and is part of our data, then separate our data into Y and X, as defined above — we’ll mostly be working with X. (Note: if there exists no column for Y, that’s okay — skip to the next point!)
+
+2. Take the matrix of independent variables X and, for each column, subtract the mean of that column from each entry. (This ensures that each column has a mean of zero.)
+
+3. Decide whether or not to standardize. Given the columns of X, are features with higher variance more important than features with lower variance, or is the importance of features independent of the variance? (In this case, importance means how well that feature predicts Y.) **If the importance of features is independent of the variance of the features, then divide each observation in a column by that column’s standard deviation.** (This, combined with step 2, standardizes each column of X to make sure each column has mean zero and standard deviation 1.) Call the centered (and possibly standardized) matrix Z.
+
+4. Take the matrix Z, transpose it, and multiply the transposed matrix by Z. (Writing this out mathematically, we would write this as ZᵀZ.) The resulting matrix is the covariance matrix of Z, up to a constant.
+
+5. (This is probably the toughest step to follow) Calculate the eigenvectors and their corresponding eigenvalues of ZᵀZ. This is quite easily done in most computing packages— in fact, the eigendecomposition of ZᵀZ is where we decompose ZᵀZ into PDP⁻¹, where P is the matrix of eigenvectors and D is the diagonal matrix with eigenvalues on the diagonal and values of zero everywhere else. The eigenvalues on the diagonal of D will be associated with the corresponding column in P — that is, the first element of D is λ₁ and the corresponding eigenvector is the first column of P. This holds for all elements in D and their corresponding eigenvectors in P. We will always be able to calculate PDP⁻¹ in this fashion. (Bonus: for those interested, we can always calculate PDP⁻¹ in this fashion because ZᵀZ is a symmetric, positive semidefinite matrix.)
+
+6. Take the eigenvalues λ₁, λ₂, …, λp and sort them from largest to smallest. In doing so, sort the eigenvectors in P accordingly. (For example, if λ₂ is the largest eigenvalue, then take the second column of P and place it in the first column position.) Depending on the computing package, this may be done automatically. Call this sorted matrix of eigenvectors P* . (The columns of P* should be the same as the columns of P, but perhaps in a different order.) **Note that these eigenvectors are independent of one another.**
+Calculate Z* = ZP* . This new matrix, Z* , is a centered/standardized version of X but now each observation is a combination of the original variables, where the weights are determined by the eigenvector. **As a bonus, because our eigenvectors in P* are independent of one another, each column of Z* is also independent of one another!**
+
+![PCA output](/Users/mashi/Downloads/PCA.PNG "PCA")
+
+* Note two things in this graphic:
+
++ The two charts show the exact same data, but the right graph reflects the original data transformed so that our axes are now the principal components.
++ In both graphs, the principal components are perpendicular to one another. **In fact, every principal component will ALWAYS be orthogonal** (a.k.a. official math term for perpendicular) **to every other principal component**.
+
+Because our principal components are orthogonal to one another, they are statistically linearly independent of one another, which is why our columns of Z* are linearly independent of one another!
+
+8. Finally, we need to determine how many features to keep versus how many to drop. There are three common methods to determine this, discussed below and followed by an explicit example:
+
+**Method 1**: We arbitrarily select how many dimensions we want to keep. Perhaps I want to visually represent things in two dimensions, so I may only keep two features. This is use-case dependent and there isn’t a hard-and-fast rule for how many features I should pick.
+
+**Method 2**: Calculate the proportion of variance explained (briefly explained below) for each feature, pick a threshold, and add features until you hit that threshold. (For example, if we want to explain 80% of the total variability possibly explained by our model, add features with the largest explained proportion of variance until our proportion of variance explained hits or exceeds 80%.)
+
+**Method 3**: This is closely related to Method 2. Calculate the proportion of variance explained for each feature, sort features by proportion of variance explained and plot the cumulative proportion of variance explained as you keep more features. (This plot is called a scree plot, shows below) One can pick how many features to include by identifying the point where adding a new feature has a significant drop in variance explained relative to the previous feature, and choosing features up until that point. (I call this the “find the elbow” method, as looking at the “bend” or “elbow” in the scree plot determines where the biggest drop in proportion of variance explained occurs.)
+
+Because each eigenvalue is roughly the importance of its corresponding eigenvector, the proportion of variance explained is the sum of the eigenvalues of the features you kept divided by the sum of the eigenvalues of all features.
+
+plot_pca_scree_elutriation
+![scree plot](/Users/mashi/Downloads/plot_pca_scree_elutriation.gif "Scree plot")
+Consider this scree plot for genetic data. The red line indicates the proportion of variance explained by each feature, which is calculated by taking that principal component’s eigenvalue divided by the sum of all eigenvalues. The proportion of variance explained by including only principal component 1 is λ₁/(λ₁ + λ₂ + … + λp), which is about 23%. The proportion of variance explained by including only principal component 2 is λ₂/(λ₁ + λ₂ + … + λp), or about 19%.
+
+The proportion of variance explained by including both principal components 1 and 2 is (λ₁ + λ₂)/(λ₁ + λ₂ + … + λp), which is about 42%. This is where the yellow line comes in; the yellow line indicates the cumulative proportion of variance explained if you included all principal components up to that point. For example, the yellow dot above PC2 indicates that including principal components 1 and 2 will explain about 42% of the total variance in the model.
+
+Now let’s go through this example for genetic data:
+
+**Method 1**: We arbitrarily select a number of principal components to include. Suppose I wanted to keep five principal components in my model. In the genetic data case above, these five principal components explains about 66% of the total variability that would be explained by including all 13 principal components.
+
+**Method 2**: Suppose I wanted to include enough principal components to explain 90% of the total variability explained by all 13 principal components. In the genetic data case above, I would include the first 10 principal components and drop the final three variables from Z*.
+
+**Method 3**: Here, we want to “find the elbow.” In the scree plot above, we see there’s a big drop in proportion of variability explained between principal component 2 and principal component 3. In this case, we’d likely include the first two features and drop the remaining features. As you can see, this method is a bit subjective as “elbow” doesn’t have a mathematically precise definition and, in this case, we’d include a model that explains only about 42% of the total variability.
+
+
+### Why does PCA work?
+* While PCA is a very technical method relying on in-depth linear algebra algorithms, it’s a relatively intuitive method when you think about it.
+
++ First, the covariance matrix ZᵀZ is a matrix that contains estimates of how every variable in Z relates to every other variable in Z. Understanding how one variable is associated with another is quite powerful.
++ Second, eigenvalues and eigenvectors are important. Eigenvectors represent directions. Think of plotting your data on a multidimensional scatterplot. Then one can think of an individual eigenvector as a particular “direction” in your scatterplot of data. Eigenvalues represent magnitude, or importance. Bigger eigenvalues correlate with more important directions.
++ Finally, we make an assumption that more variability in a particular direction correlates with explaining the behavior of the dependent variable. Lots of variability usually indicates signal, whereas little variability usually indicates noise. Thus, the more variability there is in a particular direction is, theoretically, indicative of something important we want to detect. 
+
+Thus, PCA is a method that brings together:
+
+1. A measure of how each variable is associated with one another. (Covariance matrix.)
+2. The directions in which our data are dispersed. (Eigenvectors.)
+3. The relative importance of these different directions. (Eigenvalues.)
+
+PCA combines our predictors and allows us to drop the eigenvectors that are relatively unimportant.
