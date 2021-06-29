@@ -18,7 +18,6 @@ Reducing the number of variables of a data set naturally comes at the expense of
 
 So to sum up, the idea of PCA is simple — reduce the number of variables of a data set, while preserving as much information as possible.
 
-
 ## When should we use PCA?
 
 1. Do we want to reduce the number of variables, but aren’t able to identify variables to completely remove from consideration?
